@@ -156,8 +156,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
     if (info.time.completed) {
       const stats = messageStats.get(sessionID)
       if (stats && !stats.frozen) {
-        const completedTs = (info.time.completed as number) ?? Date.now()
-        const durationMs = Math.max(1, completedTs - stats.firstDeltaTs)
+        const durationMs = Math.max(1, (info.time.completed as number) - stats.firstDeltaTs)
 
         // Prefer real output tokens from the message info if available; otherwise fall back to estimate.
         const realTokens = readOutputTokens(info)
