@@ -38,10 +38,11 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
   const SINGLE_SAMPLE_MIN_MS = 250
   const SINGLE_SAMPLE_MAX_MS = 1000
   const WARMUP_MS = 3000
+  const BYTES_PER_TOKEN_ESTIMATE = 5.5
 
   function estimateTokens(text: string): number {
     const byteLen = new TextEncoder().encode(text).length
-    return Math.max(1, Math.ceil(byteLen / 5))
+    return Math.max(1, Math.ceil(byteLen / BYTES_PER_TOKEN_ESTIMATE))
   }
 
   function readOutputTokens(info: unknown): number | undefined {
