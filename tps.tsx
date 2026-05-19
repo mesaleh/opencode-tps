@@ -44,6 +44,14 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
     return Math.max(1, Math.ceil(byteLen / 5))
   }
 
+  function readOutputTokens(info: unknown): number | undefined {
+    if (!info || typeof info !== "object") return undefined
+    const tokens = (info as { tokens?: { output?: unknown } }).tokens
+    const output = tokens?.output
+    if (typeof output === "number" && isFinite(output) && output > 0) return output
+    return undefined
+  }
+
   function formatTps(value: number): string {
     if (value < 0) return "-"
     if (value < 10) return value.toFixed(2)
@@ -146,6 +154,27 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
     const sessionID = info.sessionID
 
     if (info.time.completed) {
+      const stats = messageStats.get(sessionID)
+      if (stats && !stats.frozen) {
+        const completedTs = (info.time.completed as number) ?? Date.now()
+        const durationMs = Math.max(1, completedTs - stats.firstDeltaTs)
+
+        // Prefer real output tokens from the message info if available; otherwise fall back to estimate.
+        const realTokens = readOutputTokens(info)
+        const tokensForAvg = realTokens && realTokens > 0 ? realTokens : stats.totalEstTokens
+
+        const avg = (tokensForAvg / durationMs) * 1000
+
+        let max = stats.maxLiveTps
+        let min = stats.minLiveTps
+        if (!isFinite(max) || !isFinite(min)) {
+          // Warm-up never passed — fall back to avg for both.
+          max = avg
+          min = avg
+        }
+
+        stats.frozen = { avg, max, min }
+      }
       streamSamples.delete(sessionID)
       setVersion((v) => v + 1)
     }
@@ -188,6 +217,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
     unsubUpdated()
     unsubPartUpdated()
     clearInterval(interval)
+    messageStats.clear()
   })
 
   api.slots.register({
