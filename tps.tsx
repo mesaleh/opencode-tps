@@ -158,23 +158,22 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
       if (stats && !stats.frozen) {
         const durationMs = Math.max(1, (info.time.completed as number) - stats.firstDeltaTs)
 
-        // Prefer real output tokens for avg if available; rescale max/min by the same ratio
-        // so all three numbers stay on the same scale (otherwise estimate-based min/max
-        // would disagree with the real-token avg).
+        // avg uses real output tokens whenever the API exposes them; estimate is a fallback only.
         const realTokens = readOutputTokens(info)
-        const useReal = realTokens !== undefined && stats.totalEstTokens > 0
-        const tokensForAvg = useReal ? (realTokens as number) : stats.totalEstTokens
-        const scale = useReal ? (realTokens as number) / stats.totalEstTokens : 1
-
+        const tokensForAvg = realTokens !== undefined ? realTokens : stats.totalEstTokens
         const avg = (tokensForAvg / durationMs) * 1000
 
+        // max/min are estimate-derived per-second samples — the API gives no per-second real
+        // counts. Rescale them by the message's real/estimate ratio so all three numbers share
+        // a scale; if either side of the ratio is missing, leave max/min unscaled.
         let max = stats.maxLiveTps
         let min = stats.minLiveTps
         if (!isFinite(max) || !isFinite(min)) {
           // Warm-up never passed — fall back to avg for both.
           max = avg
           min = avg
-        } else {
+        } else if (realTokens !== undefined && stats.totalEstTokens > 0) {
+          const scale = realTokens / stats.totalEstTokens
           max = max * scale
           min = min * scale
         }
