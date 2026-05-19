@@ -225,17 +225,24 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
       session_prompt_right(ctx, props) {
         const sessionID = props.session_id
 
-        const liveTps = createMemo(() => {
+        const display = createMemo(() => {
           version()
           tick()
-          return calcLiveTps(sessionID)
+          const stats = messageStats.get(sessionID)
+          if (stats?.frozen) {
+            const { avg, max, min } = stats.frozen
+            return `tok/s ${formatTps(avg)} avg · ↑${formatTps(max)} ↓${formatTps(min)}`
+          }
+          const live = calcLiveTps(sessionID)
+          if (live > 0) return `tok/s ${formatTps(live)}`
+          return "tok/s -"
         })
 
         const textMuted = ctx.theme.current.textMuted
 
         return (
           <text fg={textMuted}>
-            TPS {formatTps(liveTps())}
+            {display()}
           </text>
         )
       },
