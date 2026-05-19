@@ -7,6 +7,14 @@ interface StreamSample {
   timestamp: number
 }
 
+interface MessageStats {
+  firstDeltaTs: number
+  totalEstTokens: number
+  maxLiveTps: number     // -Infinity until first warm sample
+  minLiveTps: number     // Infinity until first warm sample
+  frozen?: { avg: number; max: number; min: number }
+}
+
 interface PartDeltaEvent {
   type: "message.part.delta"
   properties: {
@@ -20,6 +28,7 @@ interface PartDeltaEvent {
 
 const tui: TuiPlugin = async (api, _options, _meta) => {
   const streamSamples = new Map<string, StreamSample[]>()
+  const messageStats = new Map<string, MessageStats>()
 
   const [version, setVersion] = createSignal(0)
   const [tick, setTick] = createSignal(0)
@@ -28,6 +37,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
   const SAMPLE_WINDOW_MS = 5000
   const SINGLE_SAMPLE_MIN_MS = 250
   const SINGLE_SAMPLE_MAX_MS = 1000
+  const WARMUP_MS = 3000
 
   function estimateTokens(text: string): number {
     const byteLen = new TextEncoder().encode(text).length
@@ -113,6 +123,19 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
     }
     samples.push({ tokens, timestamp: now })
 
+    let stats = messageStats.get(sessionID)
+    if (!stats || stats.frozen) {
+      // A frozen entry from the previous message — replace it (new response starting).
+      stats = {
+        firstDeltaTs: now,
+        totalEstTokens: 0,
+        maxLiveTps: -Infinity,
+        minLiveTps: Infinity,
+      }
+      messageStats.set(sessionID, stats)
+    }
+    stats.totalEstTokens += tokens
+
     setVersion((v) => v + 1)
   })
 
@@ -148,6 +171,14 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
       if (pruned.length !== samples.length) {
         streamSamples.set(sessionID, pruned)
       }
+    }
+    for (const [sessionID, stats] of messageStats) {
+      if (stats.frozen) continue
+      if (now - stats.firstDeltaTs < WARMUP_MS) continue
+      const liveTps = calcLiveTps(sessionID)
+      if (liveTps <= 0) continue
+      if (liveTps > stats.maxLiveTps) stats.maxLiveTps = liveTps
+      if (liveTps < stats.minLiveTps) stats.minLiveTps = liveTps
     }
     setTick((t) => t + 1)
   }, 1000)
