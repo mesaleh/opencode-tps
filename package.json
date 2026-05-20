@@ -1,7 +1,7 @@
 {
-  "name": "@williamcr01/opencode-tps",
+  "name": "@mesaleh/opencode-tps",
   "version": "0.2.0",
-  "description": "Display live tokens-per-second (TPS) meter in OpenCode TUI",
+  "description": "Live tok/s meter for OpenCode TUI with persistent avg/max/min summary after each response",
   "type": "module",
   "exports": {
     "./tui": "./tps.tsx"
@@ -24,19 +24,20 @@
     "opencode",
     "plugin",
     "tps",
+    "tok/s",
     "tokens",
     "performance",
     "meter",
     "solid-js"
   ],
-  "author": "williamcr01",
+  "author": "mesaleh",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/williamcr01/opencode-tps.git"
+    "url": "https://github.com/mesaleh/opencode-tps.git"
   },
   "bugs": {
-    "url": "https://github.com/williamcr01/opencode-tps/issues"
+    "url": "https://github.com/mesaleh/opencode-tps/issues"
   },
-  "homepage": "https://github.com/williamcr01/opencode-tps#readme"
+  "homepage": "https://github.com/mesaleh/opencode-tps#readme"
 }
