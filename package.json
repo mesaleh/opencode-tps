@@ -1,24 +1,32 @@
 {
   "name": "@mesaleh/opencode-tps",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Live tok/s meter for OpenCode TUI with persistent avg/max/min summary after each response",
   "type": "module",
   "exports": {
-    "./tui": "./tps.tsx"
+    "./tui": "./dist/tps.js"
   },
   "files": [
+    "dist",
     "tps.tsx",
     "README.md",
     "LICENSE"
   ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepare": "npm run build"
+  },
   "engines": {
     "opencode": ">=1.3.14"
   },
-  "peerDependencies": {
-    "@opencode-ai/plugin": "*",
-    "@opentui/core": "*",
-    "@opentui/solid": "*",
-    "solid-js": "*"
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-typescript": "^7.27.0",
+    "@opencode-ai/plugin": "^1.17.0",
+    "@opentui/core": "^0.4.3",
+    "@opentui/solid": "^0.4.3",
+    "babel-preset-solid": "^1.9.0",
+    "solid-js": "^1.9.0"
   },
   "keywords": [
     "opencode",
