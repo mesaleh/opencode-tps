@@ -26,26 +26,23 @@ The summary stays on screen until the next assistant response starts streaming, 
 ### Via OpenCode CLI
 
 ```bash
-opencode plugin @mesaleh/opencode-tps
+opencode plugin @mesaleh/opencode-tps -g
 ```
 
-### Via npm
+OpenCode installs the package into its own plugin cache and registers it for you.
 
-1. Add the plugin to your `opencode.json`:
+### By hand
+
+This is a TUI plugin, so it belongs in `tui.json`, not `opencode.json`. Add it to
+`~/.config/opencode/tui.json` for every project, or `<project>/.opencode/tui.json` for one:
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
   "plugin": ["@mesaleh/opencode-tps"]
 }
 ```
 
-2. Install the package:
-
-```bash
-cd ~/.opencode
-npm install @mesaleh/opencode-tps
-```
+OpenCode installs the package on next start; there is no separate `npm install` step.
 
 ## Requirements
 
@@ -60,6 +57,24 @@ The plugin subscribes to `message.part.delta`, `message.updated`, and `message.p
 - **Per-message accumulator:** in parallel with the rolling window, the plugin tracks first-delta timestamp, cumulative estimated tokens, and the observed max/min of the live reading (after a 3-second warm-up so a single early sample can't pin an artificial floor).
 - **On completion:** computes `avg = tokens / duration`, preferring the real output-token count from the message info when available. Rescales `max` and `min` by the same real/estimate ratio so all three displayed numbers share a scale.
 - **Across tool calls:** the live rolling window clears on tool transitions, but the per-message accumulator keeps going, so the final `avg` reflects the whole response.
+
+## Development
+
+The source is `tps.tsx`, but the published entrypoint is `dist/tps.js`:
+
+```bash
+npm install
+npm run build   # tps.tsx -> dist/tps.js
+```
+
+The build applies the Solid "universal" JSX transform ahead of time. It has to: OpenCode used to
+run @opentui/solid's Bun transform plugin over every `.tsx` it imported, including plugin sources
+under `node_modules`. Since @opentui/solid 0.4.x (OpenCode 1.16+) that plugin skips `node_modules`,
+so an npm-installed plugin shipping raw `.tsx` gets no Solid transform and fails to import.
+
+The compiled output keeps `@opentui/solid` and `solid-js` as bare imports on purpose — OpenCode
+rewrites them to its own runtime instances at load time. The plugin must not bundle or depend on
+its own copies of them, which is why they are dev-only dependencies here.
 
 ## License
 
